@@ -1,0 +1,5 @@
+data/
+__pycache__/
+
+glove.6B.50d.txt
+.DS_Store
