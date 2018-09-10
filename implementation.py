@@ -78,10 +78,9 @@ def define_graph():
     NUM_CLASSES = 2
     LSTM_SIZE = 100
 
-    dropout_keep_prob = 0.75
+    dropout_keep_prob = tf.placeholder(tf.float32, shape = [1])
 
-
-    input_data = tf.placeholder(tf.int32, shape = [BATCH_SIZE, MAX_WORDS_IN_REVIEW])
+    input_data = tf.placeholder(tf.float32, shape = [BATCH_SIZE, MAX_WORDS_IN_REVIEW, EMBEDDING_SIZE])
     labels = tf.placeholder(tf.float32, shape = [BATCH_SIZE, NUM_CLASSES])
 
     lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(LSTM_SIZE)
@@ -90,7 +89,7 @@ def define_graph():
     value, _ = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype = tf.float32)
 
     lstm_weight = tf.Variable(tf.truncated_normal([LSTM_SIZE, NUM_CLASSES]))
-    lstm_bias = tf.Variable(tf.constant(0.1, [NUM_CLASSES]))
+    lstm_bias = tf.Variable(tf.constant(0.1, shape = [NUM_CLASSES]))
 
     value = tf.transpose(value, [1, 0, 2])
     last = tf.gather(value, int(value.get_shape()[0]) - 1)
@@ -99,7 +98,7 @@ def define_graph():
     correct = tf.equal(tf.argmax(pred, 1), tf.argmax(labels, 1))
     Accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
 
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits= pred, labels = labels))
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits= pred, labels = labels))
     optimizer = tf.train.AdamOptimizer().minimize(loss)
 
     return input_data, labels, dropout_keep_prob, optimizer, Accuracy, loss
