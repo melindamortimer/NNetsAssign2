@@ -81,19 +81,20 @@ def define_graph():
     dropout_keep_prob = tf.placeholder(tf.float32, shape = [1])
 
     input_data = tf.placeholder(tf.float32, shape = [BATCH_SIZE, MAX_WORDS_IN_REVIEW, EMBEDDING_SIZE])
+    input_data = tf.reshape(input_data, [-1, MAX_WORDS_IN_REVIEW])
+    input_data = tf.split(input_data, MAX_WORDS_IN_REVIEW, 1)
+    
     labels = tf.placeholder(tf.float32, shape = [BATCH_SIZE, NUM_CLASSES])
+    
+    lstm_weight = tf.Variable(tf.truncated_normal([LSTM_SIZE, NUM_CLASSES]))
+    lstm_bias = tf.Variable(tf.constant(0.1, shape = [NUM_CLASSES]))
 
     lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(LSTM_SIZE)
     lstm_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob = dropout_keep_prob)
 
-    value, _ = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype = tf.float32)
+    values, states = tf.nn.static_rnn(lstm_cell, input_data, dtype = tf.float32)
 
-    lstm_weight = tf.Variable(tf.truncated_normal([LSTM_SIZE, NUM_CLASSES]))
-    lstm_bias = tf.Variable(tf.constant(0.1, shape = [NUM_CLASSES]))
-
-    value = tf.transpose(value, [1, 0, 2])
-    last = tf.gather(value, int(value.get_shape()[0]) - 1)
-    pred = tf.matmul(last, lstm_weight) + lstm_bias
+    pred = tf.matmul(values[-1], lstm_weight) + lstm_bias
 
     correct = tf.equal(tf.argmax(pred, 1), tf.argmax(labels, 1))
     Accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
