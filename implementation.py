@@ -3,7 +3,7 @@ import re
 import math
 
 BATCH_SIZE = 128
-MAX_WORDS_IN_REVIEW = 100  # Maximum length of a review to consider
+MAX_WORDS_IN_REVIEW = 200  # Maximum length of a review to consider
 EMBEDDING_SIZE = 50  # Dimensions for each word vector
 
 stop_words = set({'ourselves', 'hers', 'between', 'yourself', 'again',
@@ -74,19 +74,32 @@ def define_graph():
     labels = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE], name = "labels")
     dropout_keep_prob = tf.placeholder_with_default(0.75, shape = [], name = "dropout_keep_prob")
 
-    lstm_cell = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE)
-    lstm_cell = tf.contrib.rnn.DropoutWrapper(cell = lstm_cell,
-    						input_keep_prob = dropout_keep_prob,
-    						output_keep_prob = dropout_keep_prob)
+    # lstm_cell = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE)
+    # lstm_cell = tf.contrib.rnn.DropoutWrapper(cell = lstm_cell,
+    # 						input_keep_prob = dropout_keep_prob,
+    # 						output_keep_prob = dropout_keep_prob)
 	
-    value, _ = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype = tf.float32)
+    # value, _ = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype = tf.float32)
+    # logits = tf.layers.dense(value[:,-1,:], OUTPUT_SIZE, activation = None)
     
-    logits = tf.layers.dense(value[-1], OUTPUT_SIZE, activation = None)
+    lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(LSTM_SIZE, state_is_tuple = True)
+    lstm_cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * LSTM_LAYERS, state_is_tuple = True)
     
+    init_state = lstm_cell.zero_state(BATCH_SIZE, tf.float32)
+    
+    outputs, _ = tf.nn.dynamic_rnn(lstm_cell, input_data, initial_state = init_state)
+    
+    w = tf.Variable(tf.truncated_normal([LSTM_SIZE, OUTPUT_SIZE]), name = "softmax_weight")
+    b = tf.Variable(tf.constant(0.1, shape = [OUTPUT_SIZE]), name = "softmax_bias")
+
+    logits = tf.layers.dense(outputs[:,-1,:], OUTPUT_SIZE, activation = None)
+
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = labels))
+    loss = tf.identity(loss, name = "loss")
     optimizer = tf.train.AdamOptimizer(LEARN_RATE).minimize(loss)
     
     prediction = tf.argmax(logits, 1)
     Accuracy = tf.reduce_mean(tf.cast(tf.equal(prediction, tf.argmax(labels, 1)), tf.float32))
+    Accuracy = tf.identity(Accuracy, name = "accuracy")
     
     return input_data, labels, dropout_keep_prob, optimizer, Accuracy, loss

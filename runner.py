@@ -33,8 +33,8 @@ BATCH_SIZE = imp.BATCH_SIZE
 MAX_WORDS_IN_REVIEW = imp.MAX_WORDS_IN_REVIEW  # Maximum length of a review to consider
 EMBEDDING_SIZE = imp.EMBEDDING_SIZE  # Dimensions for each word vector
 
-SAVE_FREQ = 100
-iterations = 100000
+SAVE_FREQ = 1000
+iterations = 20000
 
 checkpoints_dir = "./checkpoints"
 
@@ -162,6 +162,8 @@ def train():
         "%Y%m%d-%H%M%S") + "/"
     writer = tf.summary.FileWriter(logdir, sess.graph)
 
+    bestacc = 0
+
     for i in range(iterations):
         batch_data, batch_labels = getTrainBatch()
         sess.run(optimizer, {input_data: batch_data, labels: batch_labels,
@@ -179,8 +181,8 @@ def train():
             if not os.path.exists(checkpoints_dir):
                 os.makedirs(checkpoints_dir)
             save_path = all_saver.save(sess, checkpoints_dir +
-                                       "/trained_model.ckpt",
-                                       global_step=i)
+                                    "/trained_model.ckpt",
+                                    global_step=i)
             print("Saved model to %s" % save_path)
     sess.close()
 
@@ -219,7 +221,9 @@ def eval(data_path):
         total_acc += accuracyV
         print("Accuracy %s, Loss: %s" % (accuracyV, lossV))
     print('-' * 40)
-    print("FINAL ACC:", total_acc / num_batches)
+    finalacc = total_acc/num_batches
+    print("FINAL ACC:", finalacc)
+    return finalacc
 
 
 if __name__ == "__main__":
