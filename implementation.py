@@ -49,7 +49,6 @@ def preprocess(review):
 
     return processed_review
 
-
 def define_graph():
     """
     Implement your model here. You will need to define placeholders, for the input and labels,
@@ -66,37 +65,28 @@ def define_graph():
     RETURNS: input, labels, optimizer, accuracy and loss
     """
 
-    """ MODEL DESIGN
-    Word embedding - model places each word in some positive/negative space
-    Overall positioning of words is used to predict label
-
-    1 embedding layer
-    1 LSTM
-    1 fully connected
-    """
-
     OUTPUT_SIZE = 2
-    LSTM_SIZE = 100
+    LSTM_SIZE = 128
+    LSTM_LAYERS = 2
+    LEARN_RATE = 1e-3
 
     input_data = tf.placeholder(tf.float32, [BATCH_SIZE, MAX_WORDS_IN_REVIEW, EMBEDDING_SIZE], name = "input_data")
     labels = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE], name = "labels")
     dropout_keep_prob = tf.placeholder_with_default(0.75, shape = [], name = "dropout_keep_prob")
-
+    
     lstm_cell = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE)
-    lstm_cell = tf.contrib.rnn.DropoutWrapper(cell = lstm_cell, output_keep_prob = dropout_keep_prob)
-
-    value, _ = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype = tf.float32)
-
-    weight = tf.Variable(tf.truncated_normal([LSTM_SIZE, OUTPUT_SIZE]), name = "weight")
-    bias = tf.Variable(tf.constant(0.1, shape = [OUTPUT_SIZE]), name = "bias")
-    value = tf.transpose(value, [1, 0, 2])
-    last = tf.gather(value, int(value.get_shape()[0]) - 1)
-    prediction = (tf.matmul(last, weight) + bias)
-
-    correctPred = tf.equal(tf.argmax(prediction, 1), tf.argmax(labels, 1))
-    Accuracy = tf.reduce_mean(tf.cast(correctPred, tf.float32))
-
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = prediction, labels = labels))
-    optimizer = tf.train.AdamOptimizer().minimize(loss)
-
+    lstm_cell = tf.contrib.rnn.DropoutWrapper(cell = lstm_cell,
+    						input_keep_prob = dropout_keep_prob,
+    						output_keep_prob = dropout_keep_prob)
+	
+    value, _ = tf.nn.static_rnn(lstm_cell, input_data, dtype = tf.float32)
+    
+    logits = tf.layers.dense(value[-1], OUTPUT_SIZE, activation = None)
+    
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = labels))
+    optimizer = tf.train.AdamOptimizer(LEARN_RATE).minimize(loss)
+    
+    prediction = tf.argmax(logits, 1)
+    Accuracy = tf.reduce_mean(tf.cast(tf.equal(prediction, tf.argmax(labels, 1)), tf.float32))
+    
     return input_data, labels, dropout_keep_prob, optimizer, Accuracy, loss
