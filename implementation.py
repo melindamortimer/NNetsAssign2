@@ -66,20 +66,20 @@ def define_graph():
     """
 
     OUTPUT_SIZE = 2
-    LSTM_SIZE = 128
+    LSTM_SIZE = 100
     LSTM_LAYERS = 2
     LEARN_RATE = 1e-3
 
     input_data = tf.placeholder(tf.float32, [BATCH_SIZE, MAX_WORDS_IN_REVIEW, EMBEDDING_SIZE], name = "input_data")
     labels = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE], name = "labels")
     dropout_keep_prob = tf.placeholder_with_default(0.75, shape = [], name = "dropout_keep_prob")
-    
+
     lstm_cell = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE)
     lstm_cell = tf.contrib.rnn.DropoutWrapper(cell = lstm_cell,
     						input_keep_prob = dropout_keep_prob,
     						output_keep_prob = dropout_keep_prob)
 	
-    value, _ = tf.nn.static_rnn(lstm_cell, input_data, dtype = tf.float32)
+    value, _ = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype = tf.float32)
     
     logits = tf.layers.dense(value[-1], OUTPUT_SIZE, activation = None)
     

@@ -1,6 +1,7 @@
 data/
 __pycache__/
 tensorboard/
+checkpoints/
 
 glove.6B.50d.txt
 .DS_Store
