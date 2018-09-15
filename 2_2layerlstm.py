@@ -43,7 +43,8 @@ def preprocess(review):
 
     # Remove stop words
     wordlist = review.split()
-    processed_review = [word for word in wordlist if word not in stop_words]
+    remaining_words = [word for word in wordlist if word not in stop_words]
+    processed_review = ' '.join(remaining_words)
     
 
     return processed_review
@@ -65,26 +66,25 @@ def define_graph():
     """
 
     OUTPUT_SIZE = 2
-    CNN_FILTERS = 32
-    FILTER_SIZE = 3
-    LSTM_SIZE = 100
-    LEARN_RATE = 1e-3
+    LSTM_LAYERS = 2
+    LSTM_SIZE = 50
+    LEARN_RATE = 1e-4
 
     input_data = tf.placeholder(tf.float32, [BATCH_SIZE, MAX_WORDS_IN_REVIEW, EMBEDDING_SIZE], name = "input_data")
     labels = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE], name = "labels")
     dropout_keep_prob = tf.placeholder_with_default(1.0, shape = [], name = "dropout_keep_prob")
     
-    # CNN before lstm
-    conv = tf.layers.conv1d(input_data, CNN_FILTERS, FILTER_SIZE, padding = "SAME")
-    pool = tf.layers.max_pooling1d(conv, pool_size = 2, strides = 2)
+    state = tf.placeholder(tf.float32, [LSTM_LAYERS, 2, BATCH_SIZE, LSTM_SIZE])
+    unpack = tf.unpack(state, axis = 0)
+    lstm_tuple_states = tuple([tf.nn.rnn_cell.LSTMStateTuple(unpack[i][0], unpack[i][1]) for i in range(LSTM_LAYERS)])
     
-    lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(LSTM_SIZE)
-    lstm_cell = tf.nn.rnn_cell.DropoutWrapper(cell = lstm_cell,
-    						output_keep_prob = dropout_keep_prob)
+    def basic_lstm():
+    	return tf.nn.rnn_cell.BasicLSTMCell(LSTM_SIZE)
+    lstm_cell = tf.nn.rnn_cell.MultiRNNCell([basic_lstm() for _ in range(LSTM_LAYERS)])
+    
+    values, state = tf.nn.dynamic_rnn(lstm_cell, input_data, initial_state = lstm_tuple_states)
 	
-    value, _ = tf.nn.dynamic_rnn(lstm_cell, pool, dtype = tf.float32)
-    
-    logits = tf.layers.dense(value[:,-1,:], OUTPUT_SIZE, activation = None)
+    logits = tf.layers.dense(values[:,-1,:], OUTPUT_SIZE, activation = tf.nn.relu)
 
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = labels))
     loss = tf.identity(loss, name = "loss")
@@ -94,6 +94,12 @@ def define_graph():
     Accuracy = tf.identity(Accuracy, name = "accuracy")
     
     return input_data, labels, dropout_keep_prob, optimizer, Accuracy, loss
+    
+    
+    
+    
+    
+    
     
     
     

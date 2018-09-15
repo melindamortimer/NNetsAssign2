@@ -43,7 +43,8 @@ def preprocess(review):
 
     # Remove stop words
     wordlist = review.split()
-    processed_review = [word for word in wordlist if word not in stop_words]
+    remaining_words = [word for word in wordlist if word not in stop_words]
+    processed_review = ' '.join(remaining_words)
     
 
     return processed_review

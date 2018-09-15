@@ -162,8 +162,6 @@ def train():
         "%Y%m%d-%H%M%S") + "/"
     writer = tf.summary.FileWriter(logdir, sess.graph)
 
-    bestacc = 0
-
     for i in range(iterations):
         batch_data, batch_labels = getTrainBatch()
         sess.run(optimizer, {input_data: batch_data, labels: batch_labels,
@@ -181,8 +179,8 @@ def train():
             if not os.path.exists(checkpoints_dir):
                 os.makedirs(checkpoints_dir)
             save_path = all_saver.save(sess, checkpoints_dir +
-                                    "/trained_model.ckpt",
-                                    global_step=i)
+                                       "/trained_model.ckpt",
+                                       global_step=i)
             print("Saved model to %s" % save_path)
     sess.close()
 
