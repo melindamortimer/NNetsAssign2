@@ -84,7 +84,7 @@ def define_graph():
 	
     value, _ = tf.nn.dynamic_rnn(lstm_cell, pool, dtype = tf.float32)
     
-    logits = tf.layers.dense(value[:,-1,:], OUTPUT_SIZE, activation = None)
+    logits = tf.layers.dense(value[:,-1,:], OUTPUT_SIZE, activation = tf.nn.softmax)
 
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = labels))
     loss = tf.identity(loss, name = "loss")
